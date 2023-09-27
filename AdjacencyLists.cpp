@@ -5,7 +5,6 @@
 #include <thread>
 #include <sstream>
 #include <ctime>
-#include <unordered_set>
 #include <unordered_map>
 #include <iomanip>
 
@@ -16,9 +15,11 @@
 
 using namespace std;
 
-unordered_map<int, unordered_set<int>> createAdjacencyList(fstream *file, int type)
+unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, int type)
 {
-   unordered_map<int, unordered_set<int>> AdjacencyList;
+   unordered_map<int, unordered_map<int, int>> AdjacencyList;
+   string eatLines;
+   int x = 0, y = 0, w = 0;
 
    switch (type)
    {
@@ -27,19 +28,25 @@ unordered_map<int, unordered_set<int>> createAdjacencyList(fstream *file, int ty
       // read edge pairs
       // use first coord as first vertex
       // use second coord as second vertex
-      // third coord is weight (this graph is unweighted)
-      int x, y, w;
+      // third coord is weight
+
       while (*file >> x >> y >> w)
       {
 
-         AdjacencyList[x].insert(y);
+         AdjacencyList[x].insert(make_pair(y, w));
       }
       break;
    case MTX:
       // do stuff
       break;
    case EDGES:
-      // do stuff
+      getline(*file, eatLines);
+      getline(*file, eatLines);
+
+      while (*file >> x >> y >> w)
+      {
+         AdjacencyList[x].insert(make_pair(y, w));
+      }
       break;
    default:
       // give me a supported file type.
@@ -110,29 +117,28 @@ int main(int argc, char *argv[])
          fstream combinedGraph = singleOpen(argv[2]);
          int type = 0;
          string extension(argv[2]);
-
          extension = (extension.substr(extension.find(".") + 1));
          if (extension.compare("txt") == 0)
          {
             type = TXT;
          }
-         else if (extension.compare("edges"))
+         else if (extension.compare("edges") == 0)
          {
             type = EDGES;
          }
-         else if (extension.compare("mtx"))
+         else if (extension.compare("mtx") == 0)
          {
             type = MTX;
          }
-         unordered_map<int, unordered_set<int>> AdjacencyList;
+         unordered_map<int, unordered_map<int, int>> AdjacencyList;
          AdjacencyList = createAdjacencyList(&combinedGraph, type);
-         for (auto it = AdjacencyList.cbegin(); it != AdjacencyList.cend(); it++)
+         for (auto const &[node, edgeSet] : AdjacencyList)
          {
-            cout << "NODE: " << it->first << "\n";
+            cout << "NODE: " << node << "\n";
             cout << "EDGES: ";
-            for (auto setIT = it->second.cbegin(); setIT != it->second.cend(); setIT++)
+            for (auto const &[edge, weight] : edgeSet)
             {
-               cout << *setIT << ',';
+               cout << edge << " w: " << weight << ", ";
             }
             cout << "\n";
          }
