@@ -15,7 +15,7 @@
 
 using namespace std;
 
-unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, int type)
+unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, int type, int skip)
 {
    unordered_map<int, unordered_map<int, int>> AdjacencyList;
    string eatLines;
@@ -24,7 +24,10 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
    switch (type)
    {
    case TXT:
-
+      for (int i = 0; i < skip; i++)
+      {
+         getline(*file, eatLines);
+      }
       // read edge pairs
       // use first coord as first vertex
       // use second coord as second vertex
@@ -38,10 +41,22 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
       break;
    case MTX:
       // do stuff
+      for (int i = 0; i < skip; i++)
+      {
+         getline(*file, eatLines);
+      }
+      // unweighted mtx
+      w = 1;
+      while (*file >> x >> y)
+      {
+         AdjacencyList[x].insert(make_pair(y, w));
+      }
       break;
    case EDGES:
-      getline(*file, eatLines);
-      getline(*file, eatLines);
+      for (int i = 0; i < skip; i++)
+      {
+         getline(*file, eatLines);
+      }
 
       while (*file >> x >> y >> w)
       {
@@ -110,6 +125,7 @@ fstream singleOpen(const string &filename)
 
 int main(int argc, char *argv[])
 {
+   int skip = 0;
    if (argc >= 3)
    {
       if (strcmp(argv[1], "-f") == 0)
@@ -131,7 +147,11 @@ int main(int argc, char *argv[])
             type = MTX;
          }
          unordered_map<int, unordered_map<int, int>> AdjacencyList;
-         AdjacencyList = createAdjacencyList(&combinedGraph, type);
+         if (argc == 5 && strcmp(argv[3], "-s") == 0)
+         {
+            skip = stoi(argv[4]);
+         }
+         AdjacencyList = createAdjacencyList(&combinedGraph, type, skip);
          for (auto const &[node, edgeSet] : AdjacencyList)
          {
             cout << "NODE: " << node << "\n";
@@ -147,6 +167,10 @@ int main(int argc, char *argv[])
       {
          fstream nodeFile = singleOpen(argv[2]);
          fstream edgeFile = singleOpen(argv[4]);
+         if (argc == 7 && strcmp(argv[6], "-s") == 0)
+         {
+            skip = stoi(argv[7]);
+         }
       }
       else
       {
