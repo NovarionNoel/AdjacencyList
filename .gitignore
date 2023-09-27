@@ -2,3 +2,7 @@
 *.o
 *.log
 *.out
+*.edges
+*.txt
+*.nodes
+*.mxt
