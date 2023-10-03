@@ -33,7 +33,7 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
       // use second coord as second vertex
       // third coord is weight
 
-      while (*file >> x >> y >> w)
+      while (*file >> x >> y)
       {
 
          AdjacencyList[x].insert(make_pair(y, w));
@@ -46,7 +46,6 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
          getline(*file, eatLines);
       }
       // unweighted mtx
-      w = 1;
       while (*file >> x >> y)
       {
          AdjacencyList[x].insert(make_pair(y, w));
@@ -58,7 +57,7 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
          getline(*file, eatLines);
       }
 
-      while (*file >> x >> y >> w)
+      while (*file >> x >> y)
       {
          AdjacencyList[x].insert(make_pair(y, w));
       }
@@ -72,9 +71,31 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
    return AdjacencyList;
 }
 
-// unordered_map<int, unordered_set<int>> createAdjacencyList(fstream *nodes, fstream *edges)
-// {
-// }
+unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *nodes, fstream *edges, int skip)
+{
+   unordered_map<int, unordered_map<int, int>> AdjacencyList;
+   string eatLines;
+
+   for (int i = 0; i < skip; i++)
+   {
+      getline(*nodes, eatLines);
+   }
+
+   for (int i = 0; i < skip; i++)
+   {
+      getline(*edges, eatLines);
+   }
+
+   int x = 0;
+   int y = 0;
+   int w = 0;
+   while (*edges >> x >> y)
+   {
+      cout << x << "," << y << endl;
+      AdjacencyList[x].insert(make_pair(y, w));
+   }
+   return AdjacencyList;
+}
 
 string getCurrentDateTime(const string &format)
 {
@@ -111,6 +132,10 @@ fstream singleOpen(const string &filename)
          this_thread::sleep_for(chrono::seconds(1));
          attempts++;
       }
+      else
+      {
+         cout << filename << " opened successfully \n";
+      }
    }
 
    if (!file.is_open())
@@ -128,30 +153,39 @@ int main(int argc, char *argv[])
    int skip = 0;
    if (argc >= 3)
    {
+      unordered_map<int, unordered_map<int, int>> AdjacencyList;
       if (strcmp(argv[1], "-f") == 0)
       {
+         // open file
          fstream combinedGraph = singleOpen(argv[2]);
          int type = 0;
+
          string extension(argv[2]);
+
          extension = (extension.substr(extension.find(".") + 1));
+
          if (extension.compare("txt") == 0)
          {
             type = TXT;
          }
+
          else if (extension.compare("edges") == 0)
          {
             type = EDGES;
          }
+
          else if (extension.compare("mtx") == 0)
          {
             type = MTX;
          }
-         unordered_map<int, unordered_map<int, int>> AdjacencyList;
+
          if (argc == 5 && strcmp(argv[3], "-s") == 0)
          {
             skip = stoi(argv[4]);
          }
+
          AdjacencyList = createAdjacencyList(&combinedGraph, type, skip);
+
          for (auto const &[node, edgeSet] : AdjacencyList)
          {
             cout << "NODE: " << node << "\n";
@@ -165,11 +199,24 @@ int main(int argc, char *argv[])
       }
       else if (strcmp(argv[1], "-n") == 0 && argc > 4 && strcmp(argv[3], "-e") == 0)
       {
+         // open files
          fstream nodeFile = singleOpen(argv[2]);
          fstream edgeFile = singleOpen(argv[4]);
+
          if (argc == 7 && strcmp(argv[6], "-s") == 0)
          {
             skip = stoi(argv[7]);
+         }
+         AdjacencyList = createAdjacencyList(&nodeFile, &edgeFile, skip);
+         for (auto const &[node, edgeSet] : AdjacencyList)
+         {
+            cout << "NODE: " << node << "\n";
+            cout << "EDGES: ";
+            for (auto const &[edge, weight] : edgeSet)
+            {
+               cout << edge << " w: " << weight << ", ";
+            }
+            cout << "\n";
          }
       }
       else
