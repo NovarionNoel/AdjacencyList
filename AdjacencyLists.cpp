@@ -71,32 +71,6 @@ unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, i
    return AdjacencyList;
 }
 
-unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *nodes, fstream *edges, int skip)
-{
-   unordered_map<int, unordered_map<int, int>> AdjacencyList;
-   string eatLines;
-
-   for (int i = 0; i < skip; i++)
-   {
-      getline(*nodes, eatLines);
-   }
-
-   for (int i = 0; i < skip; i++)
-   {
-      getline(*edges, eatLines);
-   }
-
-   int x = 0;
-   int y = 0;
-   int w = 0;
-   while (*edges >> x >> y)
-   {
-      cout << x << "," << y << endl;
-      AdjacencyList[x].insert(make_pair(y, w));
-   }
-   return AdjacencyList;
-}
-
 string getCurrentDateTime(const string &format)
 {
    auto now = chrono::system_clock::now();
