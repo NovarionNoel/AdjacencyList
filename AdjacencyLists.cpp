@@ -7,13 +7,129 @@
 #include <ctime>
 #include <unordered_map>
 #include <iomanip>
+#include <unordered_set>
+#include <set>
+#include <queue>
 
 #define TXT 11
 #define MTX 12
 #define EDGES 13
 #define NODES 14
 
+/*
+Adding edges
+attempt elimination order
+any nodes in elimination order can be skipped
+calculate clustering coefficient
+(n*(n-1))/2 - e
+fill-in
+attempt elimination order
+finding minimum fill in is NP complete (go cry about it)
+*/
+
 using namespace std;
+
+unordered_map<int, unordered_set<int>> createChordalSets(unordered_map<int, unordered_map<int, int>> &adjacencyList)
+{
+   unordered_map<int, unordered_set<int>> chordalSets;
+   for (const auto &pair : adjacencyList)
+   {
+      chordalSets.emplace(pair.first, std::unordered_set<int>());
+   }
+   return chordalSets;
+}
+
+priority_queue<pair<int, int>> createMaxHeap(unordered_map<int, unordered_set<int>> &chordalSets, int nodes[])
+{
+   priority_queue<pair<int, int>> maxChordalSet;
+   for (const auto &pair : chordalSets)
+   {
+      if (nodes[pair.first] == 0)
+      {
+         maxChordalSet.emplace(pair.first, pair.second.size());
+      }
+   }
+   return maxChordalSet;
+}
+
+int selectStart(unordered_map<int, unordered_map<int, int>> &adjacencyList)
+{
+   int k = adjacencyList.size();
+   int start = (rand() % (adjacencyList.size() + 1)) + 1;
+   return start;
+}
+
+void fillWithZeroes(int nodes[])
+{
+   for (int i = 0; i < (sizeof(nodes) / sizeof(nodes[0])); i++)
+   {
+      nodes[i] = 0;
+   }
+}
+
+void markVisited(int nodes[], int vertex, int step)
+{
+   nodes[vertex] = step;
+}
+
+int selectLargest(unordered_map<int, unordered_set<int>> &chordalSets, int nodes[])
+{
+   priority_queue<pair<int, int>> heap;
+   heap = createMaxHeap(chordalSets, nodes);
+   int newVertex = -1;
+   if (!heap.empty())
+   {
+      newVertex = heap.top().first;
+   }
+   return newVertex;
+}
+
+void checkNeighbors(unordered_map<int, unordered_map<int, int>> &adjacencyList, unordered_map<int, unordered_set<int>> &chordalSets, int nodes[], int vertex, int step)
+{
+   // check each neighbor of the vertex in adjacency list
+   for (auto const &[vertex, edgeSet] : adjacencyList)
+   {
+      for (auto const &[edge, weight] : edgeSet)
+      {
+         if (nodes[edge] == 0)
+         {
+            if (chordalSets[edge].size() == 0)
+            {
+               chordalSets[edge].insert(vertex);
+               // adding to the chordal set final in adjacencyList
+            }
+            else
+            {
+               set<int> cSetCopyV;
+               set<int> cSetCopyE;
+               bool subset = true;
+               for (auto it = chordalSets[vertex].begin(); it != chordalSets[vertex].end(); it++)
+               {
+                  cSetCopyV.emplace(*it);
+               }
+               for (auto it2 = chordalSets[edge].begin(); it2 != chordalSets[edge].end(); it2++)
+               {
+                  cSetCopyE.emplace(*it2);
+               }
+               // check to see if subset of V
+               for (auto it = cSetCopyE.begin(); it != cSetCopyE.end(); it++)
+               {
+                  if (cSetCopyV.count(*it) == 0)
+                  {
+                     subset = false;
+                     break;
+                  }
+               }
+               if (subset)
+               {
+                  chordalSets[edge].emplace(vertex);
+               }
+            }
+         }
+      }
+   }
+   markVisited(nodes, vertex, step);
+}
 
 unordered_map<int, unordered_map<int, int>> createAdjacencyList(fstream *file, int type, int skip)
 {
@@ -122,6 +238,34 @@ fstream singleOpen(const string &filename)
    return file;
 }
 
+void printAdjList(unordered_map<int, unordered_map<int, int>> adjList)
+{
+   for (auto const &[node, edgeSet] : adjList)
+   {
+      cout << "NODE: " << node << "\n";
+      cout << "EDGES: ";
+      for (auto const &[edge, weight] : edgeSet)
+      {
+         cout << edge << " w: " << weight << ", ";
+      }
+      cout << "\n";
+   }
+}
+
+void printChordalSet(unordered_map<int, unordered_set<int>> chordalSets)
+{
+   for (auto const &[node, edgeSet] : chordalSets)
+   {
+      cout << "NODE: " << node << "\n";
+      cout << "EDGES: ";
+      for (auto const &edge : edgeSet)
+      {
+         cout << edge << ", ";
+      }
+      cout << "\n";
+   }
+}
+
 int main(int argc, char *argv[])
 {
    int skip = 0;
@@ -159,45 +303,27 @@ int main(int argc, char *argv[])
          }
 
          AdjacencyList = createAdjacencyList(&combinedGraph, type, skip);
+         int *nodes = new int[AdjacencyList.size()];
+         fillWithZeroes(nodes);
+         unordered_map<int, unordered_set<int>> chordalSets = createChordalSets(AdjacencyList);
+         int vertex = selectStart(AdjacencyList);
 
-         for (auto const &[node, edgeSet] : AdjacencyList)
+         for (int step = AdjacencyList.size() - 1; step >= 0; step--)
          {
-            cout << "NODE: " << node << "\n";
-            cout << "EDGES: ";
-            for (auto const &[edge, weight] : edgeSet)
-            {
-               cout << edge << " w: " << weight << ", ";
-            }
-            cout << "\n";
-         }
-      }
-      else if (strcmp(argv[1], "-n") == 0 && argc > 4 && strcmp(argv[3], "-e") == 0)
-      {
-         // open files
-         fstream nodeFile = singleOpen(argv[2]);
-         fstream edgeFile = singleOpen(argv[4]);
 
-         if (argc == 7 && strcmp(argv[6], "-s") == 0)
-         {
-            skip = stoi(argv[7]);
+            checkNeighbors(AdjacencyList, chordalSets, nodes, vertex, step);
+            vertex = selectLargest(chordalSets, nodes);
          }
-         AdjacencyList = createAdjacencyList(&nodeFile, &edgeFile, skip);
-         for (auto const &[node, edgeSet] : AdjacencyList)
-         {
-            cout << "NODE: " << node << "\n";
-            cout << "EDGES: ";
-            for (auto const &[edge, weight] : edgeSet)
-            {
-               cout << edge << " w: " << weight << ", ";
-            }
-            cout << "\n";
-         }
-      }
-      else
-      {
-         cout << "Invalid arguments. Please supply either a file with both nodes and edges, or two separate files." << endl;
-         exit(1);
+
+         cout << "Chordal Sets \n";
+         printChordalSet(chordalSets);
       }
    }
+   else
+   {
+      cout << "Invalid arguments. Please supply either a file with both nodes and edges." << endl;
+      exit(1);
+   }
+
    return 0;
 }
